@@ -68,11 +68,15 @@ def dashboard():
     # Get AI tip of the day
     ai_tip = None
     if profile:
-        ai_tip = gemini_service.get_daily_tip(profile.__dict__, {
-            'income': total_income,
-            'expenses': total_expenses,
-            'goals': active_goals
-        })
+        try:
+            ai_tip = gemini_service.get_daily_tip(profile.__dict__, {
+                'income': total_income,
+                'expenses': total_expenses,
+                'goals': active_goals
+            })
+        except Exception as ai_error:
+            logging.warning(f"AI tip generation failed: {ai_error}")
+            ai_tip = "Welcome to your financial dashboard! Track your expenses and reach your goals."
     
     return render_template('dashboard.html', 
                          user=current_user,
@@ -87,17 +91,21 @@ def dashboard():
 @login_required
 def budgeting():
     if request.method == 'POST':
-        transaction = Transaction(
-            user_id=current_user.id,
-            type=request.form['type'],
-            category=request.form['category'],
-            amount=float(request.form['amount']),
-            description=request.form['description'],
-            date=datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-        )
-        db.session.add(transaction)
-        db.session.commit()
-        flash('Transaction added successfully!', 'success')
+        try:
+            transaction = Transaction(
+                user_id=current_user.id,
+                type=request.form['type'],
+                category=request.form['category'],
+                amount=float(request.form['amount']),
+                description=request.form['description'],
+                date=datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            )
+            db.session.add(transaction)
+            db.session.commit()
+            flash('Transaction added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding transaction: {str(e)}', 'error')
         return redirect(url_for('budgeting'))
     
     # Get current month transactions
@@ -134,54 +142,68 @@ def budgeting():
 @login_required
 def profile():
     if request.method == 'POST':
-        existing_profile = UserProfile.query.filter_by(user_id=current_user.id).first()
-        
-        if existing_profile:
-            existing_profile.job_title = request.form['job_title']
-            existing_profile.monthly_salary = float(request.form['monthly_salary'])
-            existing_profile.age = int(request.form['age'])
-            existing_profile.dependents = int(request.form['dependents'])
-            existing_profile.location = request.form['location']
-            existing_profile.risk_tolerance = request.form['risk_tolerance']
-            existing_profile.financial_goals = request.form['financial_goals']
-            existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
-            existing_profile.existing_investments = float(request.form['existing_investments'])
-            existing_profile.debt_amount = float(request.form['debt_amount'])
-            existing_profile.emergency_fund = float(request.form['emergency_fund'])
-            existing_profile.updated_at = datetime.utcnow()
-        else:
-            existing_profile = UserProfile(
-                user_id=current_user.id,
-                job_title=request.form['job_title'],
-                monthly_salary=float(request.form['monthly_salary']),
-                age=int(request.form['age']),
-                dependents=int(request.form['dependents']),
-                location=request.form['location'],
-                risk_tolerance=request.form['risk_tolerance'],
-                financial_goals=request.form['financial_goals'],
-                monthly_expenses=float(request.form['monthly_expenses']),
-                existing_investments=float(request.form['existing_investments']),
-                debt_amount=float(request.form['debt_amount']),
-                emergency_fund=float(request.form['emergency_fund'])
-            )
-            db.session.add(existing_profile)
-        
-        db.session.commit()
-        
-        # Generate AI advisory
-        advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
-        
-        flash('Profile updated successfully!', 'success')
-        return render_template('profile.html', 
-                             profile=existing_profile, 
-                             advisory=advisory)
+        try:
+            existing_profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+            
+            if existing_profile:
+                existing_profile.job_title = request.form['job_title']
+                existing_profile.monthly_salary = float(request.form['monthly_salary'])
+                existing_profile.age = int(request.form['age'])
+                existing_profile.dependents = int(request.form['dependents'])
+                existing_profile.location = request.form['location']
+                existing_profile.risk_tolerance = request.form['risk_tolerance']
+                existing_profile.financial_goals = request.form['financial_goals']
+                existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
+                existing_profile.existing_investments = float(request.form['existing_investments'])
+                existing_profile.debt_amount = float(request.form['debt_amount'])
+                existing_profile.emergency_fund = float(request.form.get('emergency_fund', 0))
+                existing_profile.updated_at = datetime.utcnow()
+            else:
+                existing_profile = UserProfile(
+                    user_id=current_user.id,
+                    job_title=request.form['job_title'],
+                    monthly_salary=float(request.form['monthly_salary']),
+                    age=int(request.form['age']),
+                    dependents=int(request.form['dependents']),
+                    location=request.form['location'],
+                    risk_tolerance=request.form['risk_tolerance'],
+                    financial_goals=request.form['financial_goals'],
+                    monthly_expenses=float(request.form['monthly_expenses']),
+                    existing_investments=float(request.form['existing_investments']),
+                    debt_amount=float(request.form['debt_amount']),
+                    emergency_fund=float(request.form.get('emergency_fund', 0))
+                )
+                db.session.add(existing_profile)
+            
+            db.session.commit()
+            
+            # Generate AI advisory with timeout
+            advisory = None
+            try:
+                advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
+            except Exception as ai_error:
+                logging.warning(f"AI advisory failed: {ai_error}")
+                advisory = "AI advisory temporarily unavailable. Your profile has been saved successfully."
+            
+            flash('Profile updated successfully!', 'success')
+            return render_template('profile.html', 
+                                 profile=existing_profile, 
+                                 advisory=advisory)
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return redirect(url_for('profile'))
     
     # Get existing profile
     existing_profile = UserProfile.query.filter_by(user_id=current_user.id).first()
     advisory = None
     
     if existing_profile:
-        advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
+        try:
+            advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
+        except Exception as ai_error:
+            logging.warning(f"AI advisory failed: {ai_error}")
+            advisory = "Complete your profile to get personalized AI financial advisory."
     
     return render_template('profile.html', 
                          profile=existing_profile,
@@ -267,29 +289,33 @@ def coach():
 @login_required
 def goals_page():
     if request.method == 'POST':
-        goal_data = {
-            'target_amount': float(request.form['target_amount']),
-            'current_amount': float(request.form.get('current_amount', 0)),
-            'target_date': datetime.strptime(request.form['target_date'], '%Y-%m-%d').date()
-        }
-        
-        # Calculate monthly savings needed
-        monthly_savings = calculate_goal_savings(goal_data)
-        
-        goal = Goal(
-            user_id=current_user.id,
-            title=request.form['title'],
-            target_amount=goal_data['target_amount'],
-            target_date=goal_data['target_date'],
-            current_amount=goal_data['current_amount'],
-            category=request.form['category'],
-            status='active',
-            monthly_savings_needed=monthly_savings
-        )
-        
-        db.session.add(goal)
-        db.session.commit()
-        flash('Goal created successfully!', 'success')
+        try:
+            goal_data = {
+                'target_amount': float(request.form['target_amount']),
+                'current_amount': float(request.form.get('current_amount', 0)),
+                'target_date': datetime.strptime(request.form['target_date'], '%Y-%m-%d').date()
+            }
+            
+            # Calculate monthly savings needed
+            monthly_savings = calculate_goal_savings(goal_data)
+            
+            goal = Goal(
+                user_id=current_user.id,
+                title=request.form['title'],
+                target_amount=goal_data['target_amount'],
+                target_date=goal_data['target_date'],
+                current_amount=goal_data['current_amount'],
+                category=request.form['category'],
+                status='active',
+                monthly_savings_needed=monthly_savings
+            )
+            
+            db.session.add(goal)
+            db.session.commit()
+            flash('Goal created successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating goal: {str(e)}', 'error')
         return redirect(url_for('goals_page'))
     
     # Get user goals
