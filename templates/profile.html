@@ -89,6 +89,14 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="emergency_fund" class="form-label">Emergency Fund (₹)</label>
+                        <input type="number" class="form-control" id="emergency_fund" name="emergency_fund" 
+                               value="{{ profile.emergency_fund if profile else '0' }}"
+                               placeholder="Amount saved for emergencies (recommended: 6 months expenses)">
+                        <div class="form-text">Recommended: {{ (profile.monthly_expenses * 6)|round(0) if profile else 0 }}₹ (6 months of expenses)</div>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="financial_goals" class="form-label">Financial Goals</label>
                         <textarea class="form-control" id="financial_goals" name="financial_goals" rows="3" 
                                   placeholder="Describe your short-term and long-term financial goals">{{ profile.financial_goals if profile else '' }}</textarea>
@@ -169,7 +177,7 @@
                     <!-- Emergency Fund -->
                     <div class="col-md-3 mb-3">
                         <div class="text-center">
-                            {% set emergency_months = (profile.existing_investments / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 %}
+                            {% set emergency_months = (profile.emergency_fund / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 %}
                             <div class="position-relative d-inline-block">
                                 <canvas id="emergencyFundChart" width="100" height="100"></canvas>
                                 <div class="position-absolute top-50 start-50 translate-middle">
@@ -255,7 +263,7 @@ createMetricChart('savingsRateChart', Math.min(savingsRate, 100),
     savingsRate >= 30 ? '#28a745' : savingsRate >= 20 ? '#ffc107' : '#dc3545');
 
 // Emergency Fund Chart
-const emergencyMonths = {{ (profile.existing_investments / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 }};
+const emergencyMonths = {{ (profile.emergency_fund / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 }};
 createMetricChart('emergencyFundChart', Math.min((emergencyMonths / 6) * 100, 100),
     emergencyMonths >= 6 ? '#28a745' : emergencyMonths >= 3 ? '#ffc107' : '#dc3545');
 

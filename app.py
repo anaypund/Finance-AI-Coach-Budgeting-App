@@ -147,6 +147,7 @@ def profile():
             existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
             existing_profile.existing_investments = float(request.form['existing_investments'])
             existing_profile.debt_amount = float(request.form['debt_amount'])
+            existing_profile.emergency_fund = float(request.form['emergency_fund'])
             existing_profile.updated_at = datetime.utcnow()
         else:
             existing_profile = UserProfile(
@@ -160,7 +161,8 @@ def profile():
                 financial_goals=request.form['financial_goals'],
                 monthly_expenses=float(request.form['monthly_expenses']),
                 existing_investments=float(request.form['existing_investments']),
-                debt_amount=float(request.form['debt_amount'])
+                debt_amount=float(request.form['debt_amount']),
+                emergency_fund=float(request.form['emergency_fund'])
             )
             db.session.add(existing_profile)
         

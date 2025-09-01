@@ -44,6 +44,7 @@ class UserProfile(db.Model):
     monthly_expenses = db.Column(db.Float, nullable=False)
     existing_investments = db.Column(db.Float, default=0)
     debt_amount = db.Column(db.Float, default=0)
+    emergency_fund = db.Column(db.Float, default=0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
