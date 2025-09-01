@@ -92,14 +92,13 @@ def dashboard():
 def budgeting():
     if request.method == 'POST':
         try:
-            transaction = Transaction(
-                user_id=current_user.id,
-                type=request.form['type'],
-                category=request.form['category'],
-                amount=float(request.form['amount']),
-                description=request.form['description'],
-                date=datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            )
+            transaction = Transaction()
+            transaction.user_id = current_user.id
+            transaction.type = request.form['type']
+            transaction.category = request.form['category']
+            transaction.amount = float(request.form['amount'])
+            transaction.description = request.form['description']
+            transaction.date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
             db.session.add(transaction)
             db.session.commit()
             flash('Transaction added successfully!', 'success')
@@ -159,20 +158,19 @@ def profile():
                 existing_profile.emergency_fund = float(request.form.get('emergency_fund', 0))
                 existing_profile.updated_at = datetime.utcnow()
             else:
-                existing_profile = UserProfile(
-                    user_id=current_user.id,
-                    job_title=request.form['job_title'],
-                    monthly_salary=float(request.form['monthly_salary']),
-                    age=int(request.form['age']),
-                    dependents=int(request.form['dependents']),
-                    location=request.form['location'],
-                    risk_tolerance=request.form['risk_tolerance'],
-                    financial_goals=request.form['financial_goals'],
-                    monthly_expenses=float(request.form['monthly_expenses']),
-                    existing_investments=float(request.form['existing_investments']),
-                    debt_amount=float(request.form['debt_amount']),
-                    emergency_fund=float(request.form.get('emergency_fund', 0))
-                )
+                existing_profile = UserProfile()
+                existing_profile.user_id = current_user.id
+                existing_profile.job_title = request.form['job_title']
+                existing_profile.monthly_salary = float(request.form['monthly_salary'])
+                existing_profile.age = int(request.form['age'])
+                existing_profile.dependents = int(request.form['dependents'])
+                existing_profile.location = request.form['location']
+                existing_profile.risk_tolerance = request.form['risk_tolerance']
+                existing_profile.financial_goals = request.form['financial_goals']
+                existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
+                existing_profile.existing_investments = float(request.form['existing_investments'])
+                existing_profile.debt_amount = float(request.form['debt_amount'])
+                existing_profile.emergency_fund = float(request.form.get('emergency_fund', 0))
                 db.session.add(existing_profile)
             
             db.session.commit()
@@ -269,11 +267,10 @@ def coach():
         ai_response = gemini_service.chat_with_coach(user_message, profile_dict, transactions_data, goals_data)
         
         # Save chat history
-        chat_entry = ChatMessage(
-            user_id=current_user.id,
-            user_message=user_message,
-            ai_response=ai_response
-        )
+        chat_entry = ChatMessage()
+        chat_entry.user_id = current_user.id
+        chat_entry.user_message = user_message
+        chat_entry.ai_response = ai_response
         db.session.add(chat_entry)
         db.session.commit()
         
@@ -299,16 +296,15 @@ def goals_page():
             # Calculate monthly savings needed
             monthly_savings = calculate_goal_savings(goal_data)
             
-            goal = Goal(
-                user_id=current_user.id,
-                title=request.form['title'],
-                target_amount=goal_data['target_amount'],
-                target_date=goal_data['target_date'],
-                current_amount=goal_data['current_amount'],
-                category=request.form['category'],
-                status='active',
-                monthly_savings_needed=monthly_savings
-            )
+            goal = Goal()
+            goal.user_id = current_user.id
+            goal.title = request.form['title']
+            goal.target_amount = goal_data['target_amount']
+            goal.target_date = goal_data['target_date']
+            goal.current_amount = goal_data['current_amount']
+            goal.category = request.form['category']
+            goal.status = 'active'
+            goal.monthly_savings_needed = monthly_savings
             
             db.session.add(goal)
             db.session.commit()
@@ -375,10 +371,9 @@ def register():
             return render_template('register.html')
         
         # Create new user
-        user = User(
-            username=username,
-            email=email
-        )
+        user = User()
+        user.username = username
+        user.email = email
         user.set_password(password)
         
         db.session.add(user)
