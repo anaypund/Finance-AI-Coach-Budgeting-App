@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio - FinanceAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-pie me-2"></i>Portfolio Guidance
+            <small class="text-muted">Asset Allocation & Investment Strategy</small>
+        </h1>
+    </div>
+</div>
+
+{% if not profile %}
+<!-- Profile Required Message -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-warning text-center">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <h4>Profile Required</h4>
+            <p>Please complete your profile to get personalized portfolio recommendations.</p>
+            <a href="{{ url_for('profile') }}" class="btn btn-primary">Complete Profile</a>
+        </div>
+    </div>
+</div>
+{% else %}
+
+<!-- Recommended Asset Allocation -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Recommended Asset Allocation
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="allocationChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Allocation Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <!-- Equity -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">
+                            <i class="fas fa-chart-line text-primary me-2"></i>Equity
+                        </span>
+                        <span class="badge bg-primary fs-6">{{ allocation.equity }}%</span>
+                    </div>
+                    <p class="text-muted small mb-0">High growth potential, suitable for long-term wealth creation</p>
+                </div>
+                
+                <!-- Debt -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">
+                            <i class="fas fa-shield-alt text-success me-2"></i>Debt
+                        </span>
+                        <span class="badge bg-success fs-6">{{ allocation.debt }}%</span>
+                    </div>
+                    <p class="text-muted small mb-0">Stable returns with lower risk, provides portfolio stability</p>
+                </div>
+                
+                <!-- Gold -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">
+                            <i class="fas fa-coins text-warning me-2"></i>Gold
+                        </span>
+                        <span class="badge bg-warning fs-6">{{ allocation.gold }}%</span>
+                    </div>
+                    <p class="text-muted small mb-0">Hedge against inflation, portfolio diversification</p>
+                </div>
+                
+                <!-- Emergency Fund -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">
+                            <i class="fas fa-life-ring text-info me-2"></i>Emergency Fund
+                        </span>
+                        <span class="badge bg-info fs-6">{{ allocation.emergency_fund_months }} Months</span>
+                    </div>
+                    <p class="text-muted small mb-1">₹{{ "{:,.0f}".format(allocation.emergency_fund_amount) }} recommended</p>
+                    <p class="text-muted small mb-0">Keep in liquid savings account or short-term FDs</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Explanation -->
+{% if explanation %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success">
+                <h5 class="mb-0 text-white">
+                    <i class="fas fa-robot me-2"></i>AI Portfolio Explanation
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="explanation-content">
+                    {{ explanation|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Investment Examples -->
+<div class="row">
+    <!-- Equity Investments -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Equity Investments
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for investment in investment_examples.equity %}
+                <div class="border-bottom pb-3 mb-3">
+                    <h6 class="fw-bold">{{ investment.name }}</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Type:</small><br>
+                            <span class="badge bg-outline-primary">{{ investment.type }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Risk:</small><br>
+                            <span class="badge bg-{{ 'danger' if investment.risk == 'Very High' or investment.risk == 'High' else 'warning' if investment.risk == 'Medium' else 'success' }}">
+                                {{ investment.risk }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Expected Returns:</small><br>
+                        <span class="fw-bold text-success">{{ investment.returns }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debt Investments -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>Debt Investments
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for investment in investment_examples.debt %}
+                <div class="border-bottom pb-3 mb-3">
+                    <h6 class="fw-bold">{{ investment.name }}</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Type:</small><br>
+                            <span class="badge bg-outline-success">{{ investment.type }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Risk:</small><br>
+                            <span class="badge bg-success">{{ investment.risk }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Expected Returns:</small><br>
+                        <span class="fw-bold text-success">{{ investment.returns }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gold Investments -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-coins me-2"></i>Gold Investments
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for investment in investment_examples.gold %}
+                <div class="border-bottom pb-3 mb-3">
+                    <h6 class="fw-bold">{{ investment.name }}</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Type:</small><br>
+                            <span class="badge bg-outline-warning">{{ investment.type }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Risk:</small><br>
+                            <span class="badge bg-warning">{{ investment.risk }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Expected Returns:</small><br>
+                        <span class="fw-bold text-success">{{ investment.returns }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Implementation Guidelines -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Implementation Guidelines
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Getting Started</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Start with building your emergency fund first
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Begin with SIP (Systematic Investment Plan) for equity
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Choose diversified mutual funds over individual stocks
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Gradually increase investment amounts as income grows
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Regular Review</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-clock text-info me-2"></i>
+                                Review portfolio allocation annually
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-balance-scale text-info me-2"></i>
+                                Rebalance when allocation deviates by 5%+
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-chart-line text-info me-2"></i>
+                                Increase equity allocation during market downturns
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-graduation-cap text-info me-2"></i>
+                                Stay informed about market trends and tax changes
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if allocation %}
+<script>
+// Portfolio Allocation Chart
+const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+new Chart(allocationCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Equity', 'Debt', 'Gold'],
+        datasets: [{
+            data: [{{ allocation.equity }}, {{ allocation.debt }}, {{ allocation.gold }}],
+            backgroundColor: ['#007bff', '#28a745', '#ffc107'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': ' + context.parsed + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

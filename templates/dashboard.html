@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FinanceAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            <small class="text-muted">Financial Overview</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success">
+            <div class="card-body text-center">
+                <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                <h4>₹{{ "{:,.0f}".format(total_income) }}</h4>
+                <p class="mb-0">Monthly Income</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger">
+            <div class="card-body text-center">
+                <i class="fas fa-arrow-down fa-2x mb-2"></i>
+                <h4>₹{{ "{:,.0f}".format(total_expenses) }}</h4>
+                <p class="mb-0">Monthly Expenses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info">
+            <div class="card-body text-center">
+                <i class="fas fa-piggy-bank fa-2x mb-2"></i>
+                <h4>₹{{ "{:,.0f}".format(total_income - total_expenses) }}</h4>
+                <p class="mb-0">Monthly Savings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-bullseye fa-2x mb-2"></i>
+                <h4>{{ active_goals|length }}</h4>
+                <p class="mb-0">Active Goals</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- AI Tip of the Day -->
+    {% if ai_tip %}
+    <div class="col-12 mb-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot me-2"></i>AI Tip of the Day
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ ai_tip }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Budget Overview -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>This Month's Budget
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if total_income > 0 %}
+                <canvas id="budgetChart" width="400" height="200"></canvas>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No transactions this month</p>
+                    <a href="{{ url_for('budgeting') }}" class="btn btn-primary">Add Transactions</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Goals Progress -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-bullseye me-2"></i>Goals Progress
+                </h5>
+                <a href="{{ url_for('goals_page') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-plus me-1"></i>Add Goal
+                </a>
+            </div>
+            <div class="card-body">
+                {% if active_goals %}
+                {% for goal in active_goals[:3] %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">{{ goal.title }}</span>
+                        <small class="text-muted">{{ "{:.1f}".format((goal.current_amount / goal.target_amount) * 100) }}%</small>
+                    </div>
+                    <div class="progress mb-1">
+                        <div class="progress-bar" style="width: {{ (goal.current_amount / goal.target_amount) * 100 }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">₹{{ "{:,.0f}".format(goal.current_amount) }}</small>
+                        <small class="text-muted">₹{{ "{:,.0f}".format(goal.target_amount) }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if active_goals|length > 3 %}
+                <p class="text-center mb-0">
+                    <a href="{{ url_for('goals_page') }}">View all {{ active_goals|length }} goals</a>
+                </p>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-bullseye fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No active goals</p>
+                    <a href="{{ url_for('goals_page') }}" class="btn btn-primary">Set Your First Goal</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Summary -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-circle me-2"></i>Profile Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if profile %}
+                <div class="row">
+                    <div class="col-6">
+                        <p><strong>Job:</strong> {{ profile.job_title }}</p>
+                        <p><strong>Age:</strong> {{ profile.age }}</p>
+                        <p><strong>Dependents:</strong> {{ profile.dependents }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p><strong>Location:</strong> {{ profile.location }}</p>
+                        <p><strong>Risk Tolerance:</strong> 
+                            <span class="badge bg-{{ 'danger' if profile.risk_tolerance == 'aggressive' else 'warning' if profile.risk_tolerance == 'moderate' else 'success' }}">
+                                {{ profile.risk_tolerance.title() }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-edit me-1"></i>Update Profile
+                </a>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-user-plus fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Complete your profile to get personalized advice</p>
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary">Complete Profile</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Summary -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Portfolio Allocation
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if portfolio_summary %}
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h4 class="text-primary">{{ portfolio_summary.equity }}%</h4>
+                        <small class="text-muted">Equity</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-success">{{ portfolio_summary.debt }}%</h4>
+                        <small class="text-muted">Debt</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-warning">{{ portfolio_summary.gold }}%</h4>
+                        <small class="text-muted">Gold</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-info">6M</h4>
+                        <small class="text-muted">Emergency</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('portfolio') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-chart-line me-1"></i>View Details
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Complete your profile to see portfolio recommendations</p>
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary">Complete Profile</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('budgeting') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus me-1"></i>Add Transaction
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('goals_page') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-bullseye me-1"></i>Set New Goal
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('coach') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-robot me-1"></i>Ask AI Coach
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('portfolio') }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-chart-pie me-1"></i>Investment Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Budget Chart
+{% if total_income > 0 %}
+const ctx = document.getElementById('budgetChart').getContext('2d');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Income', 'Expenses', 'Savings'],
+        datasets: [{
+            data: [{{ total_income }}, {{ total_expenses }}, {{ total_income - total_expenses }}],
+            backgroundColor: ['#28a745', '#dc3545', '#17a2b8'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Profile & Advisory - FinanceAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-user-circle me-2"></i>Profile & Advisory
+            <small class="text-muted">Get Personalized Financial Advice</small>
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Profile Form -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>Personal Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="job_title" class="form-label">Job Title</label>
+                        <input type="text" class="form-control" id="job_title" name="job_title" 
+                               value="{{ profile.job_title if profile else '' }}" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="monthly_salary" class="form-label">Monthly Salary (₹)</label>
+                            <input type="number" class="form-control" id="monthly_salary" name="monthly_salary" 
+                                   value="{{ profile.monthly_salary if profile else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="age" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="age" name="age" min="18" max="100"
+                                   value="{{ profile.age if profile else '' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dependents" class="form-label">Number of Dependents</label>
+                            <input type="number" class="form-control" id="dependents" name="dependents" min="0"
+                                   value="{{ profile.dependents if profile else '0' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">City</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ profile.location if profile else '' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="risk_tolerance" class="form-label">Risk Tolerance</label>
+                        <select class="form-select" id="risk_tolerance" name="risk_tolerance" required>
+                            <option value="conservative" {{ 'selected' if profile and profile.risk_tolerance == 'conservative' else '' }}>
+                                Conservative (Low Risk, Low Return)
+                            </option>
+                            <option value="moderate" {{ 'selected' if profile and profile.risk_tolerance == 'moderate' else '' }}>
+                                Moderate (Balanced Risk & Return)
+                            </option>
+                            <option value="aggressive" {{ 'selected' if profile and profile.risk_tolerance == 'aggressive' else '' }}>
+                                Aggressive (High Risk, High Return)
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="monthly_expenses" class="form-label">Monthly Expenses (₹)</label>
+                        <input type="number" class="form-control" id="monthly_expenses" name="monthly_expenses" 
+                               value="{{ profile.monthly_expenses if profile else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="existing_investments" class="form-label">Existing Investments (₹)</label>
+                        <input type="number" class="form-control" id="existing_investments" name="existing_investments" 
+                               value="{{ profile.existing_investments if profile else '0' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="debt_amount" class="form-label">Current Debt Amount (₹)</label>
+                        <input type="number" class="form-control" id="debt_amount" name="debt_amount" 
+                               value="{{ profile.debt_amount if profile else '0' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="financial_goals" class="form-label">Financial Goals</label>
+                        <textarea class="form-control" id="financial_goals" name="financial_goals" rows="3" 
+                                  placeholder="Describe your short-term and long-term financial goals">{{ profile.financial_goals if profile else '' }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Update Profile & Get Advisory
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Financial Advisory -->
+    <div class="col-lg-6 mb-4">
+        {% if advisory %}
+        <div class="card border-success">
+            <div class="card-header bg-success">
+                <h5 class="mb-0 text-white">
+                    <i class="fas fa-robot me-2"></i>AI Financial Advisory
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="advisory-content">
+                    {{ advisory|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>Generated based on your current profile
+                </small>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot me-2"></i>AI Financial Advisory
+                </h5>
+            </div>
+            <div class="card-body text-center py-5">
+                <i class="fas fa-lightbulb fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Get Personalized Advice</h5>
+                <p class="text-muted">Complete your profile to receive AI-powered financial advisory tailored to your situation.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Financial Health Metrics -->
+{% if profile %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>Financial Health Metrics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Savings Rate -->
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            {% set savings_rate = ((profile.monthly_salary - profile.monthly_expenses) / profile.monthly_salary * 100) if profile.monthly_salary > 0 else 0 %}
+                            <div class="position-relative d-inline-block">
+                                <canvas id="savingsRateChart" width="100" height="100"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle">
+                                    <h4 class="mb-0">{{ "{:.0f}".format(savings_rate) }}%</h4>
+                                </div>
+                            </div>
+                            <p class="mt-2 mb-0"><strong>Savings Rate</strong></p>
+                            <small class="text-muted">{{ 'Excellent' if savings_rate >= 30 else 'Good' if savings_rate >= 20 else 'Needs Improvement' }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Emergency Fund -->
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            {% set emergency_months = (profile.existing_investments / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 %}
+                            <div class="position-relative d-inline-block">
+                                <canvas id="emergencyFundChart" width="100" height="100"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle">
+                                    <h4 class="mb-0">{{ "{:.1f}".format(emergency_months) }}</h4>
+                                </div>
+                            </div>
+                            <p class="mt-2 mb-0"><strong>Emergency Fund</strong></p>
+                            <small class="text-muted">Months Covered</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Debt-to-Income -->
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            {% set debt_ratio = (profile.debt_amount / (profile.monthly_salary * 12) * 100) if profile.monthly_salary > 0 else 0 %}
+                            <div class="position-relative d-inline-block">
+                                <canvas id="debtRatioChart" width="100" height="100"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle">
+                                    <h4 class="mb-0">{{ "{:.0f}".format(debt_ratio) }}%</h4>
+                                </div>
+                            </div>
+                            <p class="mt-2 mb-0"><strong>Debt-to-Income</strong></p>
+                            <small class="text-muted">{{ 'Good' if debt_ratio < 20 else 'Moderate' if debt_ratio < 40 else 'High' }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Investment Rate -->
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            {% set investment_rate = (profile.existing_investments / (profile.monthly_salary * 12) * 100) if profile.monthly_salary > 0 else 0 %}
+                            <div class="position-relative d-inline-block">
+                                <canvas id="investmentRateChart" width="100" height="100"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle">
+                                    <h4 class="mb-0">{{ "{:.0f}".format(investment_rate) }}%</h4>
+                                </div>
+                            </div>
+                            <p class="mt-2 mb-0"><strong>Investment Rate</strong></p>
+                            <small class="text-muted">Of Annual Income</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if profile %}
+<script>
+// Create doughnut charts for financial metrics
+function createMetricChart(canvasId, percentage, color) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [percentage, 100 - percentage],
+                backgroundColor: [color, '#e9ecef'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: false
+                }
+            }
+        }
+    });
+}
+
+// Savings Rate Chart
+const savingsRate = {{ ((profile.monthly_salary - profile.monthly_expenses) / profile.monthly_salary * 100) if profile.monthly_salary > 0 else 0 }};
+createMetricChart('savingsRateChart', Math.min(savingsRate, 100), 
+    savingsRate >= 30 ? '#28a745' : savingsRate >= 20 ? '#ffc107' : '#dc3545');
+
+// Emergency Fund Chart
+const emergencyMonths = {{ (profile.existing_investments / profile.monthly_expenses) if profile.monthly_expenses > 0 else 0 }};
+createMetricChart('emergencyFundChart', Math.min((emergencyMonths / 6) * 100, 100),
+    emergencyMonths >= 6 ? '#28a745' : emergencyMonths >= 3 ? '#ffc107' : '#dc3545');
+
+// Debt Ratio Chart
+const debtRatio = {{ (profile.debt_amount / (profile.monthly_salary * 12) * 100) if profile.monthly_salary > 0 else 0 }};
+createMetricChart('debtRatioChart', Math.min(debtRatio, 100),
+    debtRatio < 20 ? '#28a745' : debtRatio < 40 ? '#ffc107' : '#dc3545');
+
+// Investment Rate Chart
+const investmentRate = {{ (profile.existing_investments / (profile.monthly_salary * 12) * 100) if profile.monthly_salary > 0 else 0 }};
+createMetricChart('investmentRateChart', Math.min(investmentRate, 100),
+    investmentRate >= 20 ? '#28a745' : investmentRate >= 10 ? '#ffc107' : '#dc3545');
+</script>
+{% endif %}
+{% endblock %}

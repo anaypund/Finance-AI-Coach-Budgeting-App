@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}AI Coach - FinanceAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-robot me-2"></i>AI Financial Coach
+            <small class="text-muted">Get Instant Financial Advice</small>
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-comments me-2"></i>Chat with Your AI Coach
+                </h5>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div class="card-body" style="height: 500px; overflow-y: auto;" id="chatContainer">
+                {% if chat_messages %}
+                {% for message in chat_messages %}
+                <!-- User Message -->
+                <div class="d-flex justify-content-end mb-3">
+                    <div class="card bg-primary text-white" style="max-width: 75%;">
+                        <div class="card-body p-3">
+                            <p class="mb-1">{{ message.user_message }}</p>
+                            <small class="opacity-75">
+                                <i class="fas fa-clock me-1"></i>{{ message.timestamp.strftime('%H:%M') }}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="ms-2">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Response -->
+                <div class="d-flex justify-content-start mb-3">
+                    <div class="me-2">
+                        <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fas fa-robot text-white"></i>
+                        </div>
+                    </div>
+                    <div class="card bg-light" style="max-width: 75%;">
+                        <div class="card-body p-3">
+                            <p class="mb-1">{{ message.ai_response|replace('\n', '<br>')|safe }}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ message.timestamp.strftime('%H:%M') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <!-- Welcome Message -->
+                <div class="text-center py-5">
+                    <i class="fas fa-robot fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Welcome to Your AI Financial Coach!</h4>
+                    <p class="text-muted">Ask me anything about personal finance, budgeting, investments, or financial planning.</p>
+                    <div class="row mt-4">
+                        <div class="col-md-6 offset-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Try asking me:</h6>
+                                    <ul class="list-unstyled text-start">
+                                        <li class="mb-2"><i class="fas fa-question-circle text-primary me-2"></i>"How much should I save for emergency fund?"</li>
+                                        <li class="mb-2"><i class="fas fa-question-circle text-primary me-2"></i>"Should I invest in mutual funds or stocks?"</li>
+                                        <li class="mb-2"><i class="fas fa-question-circle text-primary me-2"></i>"How can I reduce my monthly expenses?"</li>
+                                        <li class="mb-2"><i class="fas fa-question-circle text-primary me-2"></i>"What's the best way to pay off debt?"</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Message Input -->
+            <div class="card-footer">
+                <form method="POST" class="d-flex">
+                    <div class="flex-grow-1 me-2">
+                        <textarea class="form-control" name="message" rows="2" 
+                                  placeholder="Ask me anything about personal finance..." 
+                                  required style="resize: none;"></textarea>
+                    </div>
+                    <div class="d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+                <small class="text-muted mt-2 d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Your AI coach considers your profile, recent transactions, and goals to provide personalized advice.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Questions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Questions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Budgeting & Savings</h6>
+                        <div class="list-group list-group-flush">
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="How much should I save each month?">
+                                <i class="fas fa-piggy-bank text-success me-2"></i>How much should I save each month?
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="What's the 50/30/20 rule?">
+                                <i class="fas fa-chart-pie text-info me-2"></i>What's the 50/30/20 rule?
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="How can I reduce my expenses?">
+                                <i class="fas fa-cut text-warning me-2"></i>How can I reduce my expenses?
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Investments & Goals</h6>
+                        <div class="list-group list-group-flush">
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="Should I invest in SIP or lump sum?">
+                                <i class="fas fa-chart-line text-primary me-2"></i>Should I invest in SIP or lump sum?
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="How do I choose the right mutual fund?">
+                                <i class="fas fa-search text-success me-2"></i>How do I choose the right mutual fund?
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action quick-question" 
+                               data-question="When should I start planning for retirement?">
+                                <i class="fas fa-user-clock text-danger me-2"></i>When should I start planning for retirement?
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Tips -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Pro Tips for Better Financial Health
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                            <h6 class="fw-bold">Build Emergency Fund First</h6>
+                            <p class="text-muted small">Before investing, ensure you have 6 months of expenses saved for emergencies.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                            <h6 class="fw-bold">Start Early, Invest Regularly</h6>
+                            <p class="text-muted small">The power of compounding works best when you start early and invest consistently.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-balance-scale fa-2x text-warning mb-2"></i>
+                            <h6 class="fw-bold">Diversify Your Portfolio</h6>
+                            <p class="text-muted small">Don't put all eggs in one basket. Spread risk across different asset classes.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-scroll to bottom of chat
+function scrollToBottom() {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// Scroll to bottom on page load
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+});
+
+// Handle quick questions
+document.querySelectorAll('.quick-question').forEach(function(element) {
+    element.addEventListener('click', function(e) {
+        e.preventDefault();
+        const question = this.getAttribute('data-question');
+        document.querySelector('textarea[name="message"]').value = question;
+        document.querySelector('textarea[name="message"]').focus();
+    });
+});
+
+// Auto-resize textarea
+document.querySelector('textarea[name="message"]').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Handle form submission
+document.querySelector('form').addEventListener('submit', function() {
+    // Show loading indicator
+    const submitBtn = document.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    submitBtn.disabled = true;
+});
+
+// Enable enter key to send message (Shift+Enter for new line)
+document.querySelector('textarea[name="message"]').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.closest('form').submit();
+    }
+});
+</script>
+{% endblock %}

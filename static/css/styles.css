@@ -1,0 +1,384 @@
+/* Custom styles for FinanceAI */
+
+/* Enhance card hover effects */
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.15);
+}
+
+/* Custom progress bars */
+.progress {
+    border-radius: 10px;
+    background-color: var(--bs-gray-200);
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+/* Financial metric cards */
+.metric-card {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-info) 100%);
+    border: none;
+    color: white;
+}
+
+.metric-card .card-body {
+    padding: 1.5rem;
+}
+
+.metric-card h4 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* Chat interface improvements */
+.chat-message {
+    max-width: 75%;
+    margin-bottom: 1rem;
+}
+
+.chat-message.user {
+    margin-left: auto;
+}
+
+.chat-message .message-content {
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    word-wrap: break-word;
+}
+
+.chat-message.user .message-content {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.chat-message.ai .message-content {
+    background-color: var(--bs-light);
+    color: var(--bs-dark);
+}
+
+/* Goal cards */
+.goal-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.goal-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.goal-card.completed {
+    border-color: var(--bs-success);
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+}
+
+/* Portfolio allocation cards */
+.allocation-item {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.3s ease;
+}
+
+.allocation-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.allocation-percentage {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* Transaction table improvements */
+.transaction-table .table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+.transaction-type.income {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--bs-success);
+}
+
+.transaction-type.expense {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--bs-danger);
+}
+
+/* Budget breakdown styling */
+.budget-item {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 4px solid;
+}
+
+.budget-item.needs {
+    border-left-color: var(--bs-warning);
+}
+
+.budget-item.wants {
+    border-left-color: var(--bs-danger);
+}
+
+.budget-item.savings {
+    border-left-color: var(--bs-success);
+}
+
+.budget-status.good {
+    color: var(--bs-success);
+}
+
+.budget-status.over {
+    color: var(--bs-danger);
+}
+
+.budget-status.under {
+    color: var(--bs-warning);
+}
+
+/* AI advisory styling */
+.advisory-content {
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.advisory-content h6 {
+    color: var(--bs-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.advisory-content ul {
+    margin-left: 1rem;
+}
+
+.advisory-content li {
+    margin-bottom: 0.5rem;
+}
+
+/* Quick action buttons */
+.quick-action-btn {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding: 1rem;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+/* Financial health metrics */
+.metric-circle {
+    position: relative;
+    display: inline-block;
+}
+
+.metric-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+/* Investment examples */
+.investment-example {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.investment-example:hover {
+    border-color: var(--bs-primary);
+    background: rgba(0, 123, 255, 0.05);
+}
+
+/* Dashboard widgets */
+.dashboard-widget {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-widget .widget-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+}
+
+.dashboard-widget .widget-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-widget .widget-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Form enhancements */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-widget {
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .dashboard-widget .widget-value {
+        font-size: 1.5rem;
+    }
+    
+    .chat-message {
+        max-width: 90%;
+    }
+    
+    .goal-card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Accessibility improvements */
+.btn:focus,
+.nav-link:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Custom scrollbar for chat */
+.chat-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: var(--bs-gray-200);
+    border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: var(--bs-gray-400);
+    border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: var(--bs-gray-500);
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Success animations */
+.goal-completed {
+    animation: goalCompleted 0.6s ease-in-out;
+}
+
+@keyframes goalCompleted {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Financial status indicators */
+.status-excellent { color: var(--bs-success); }
+.status-good { color: var(--bs-info); }
+.status-fair { color: var(--bs-warning); }
+.status-poor { color: var(--bs-danger); }
+
+/* Custom badge styling */
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+/* Alert customizations */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(23, 162, 184, 0.05) 100%);
+    border-left: 4px solid var(--bs-info);
+}
+
+.alert-success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+    border-left: 4px solid var(--bs-success);
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+    border-left: 4px solid var(--bs-warning);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+    border-left: 4px solid var(--bs-danger);
+}

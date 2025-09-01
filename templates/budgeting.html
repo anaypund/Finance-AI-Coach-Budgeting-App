@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Budgeting - FinanceAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-wallet me-2"></i>Budgeting
+            <small class="text-muted">Track Income & Expenses</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Add Transaction Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Add Transaction
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="amount" class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="description" name="description" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ moment().format('YYYY-MM-DD') }}" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Add Transaction
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Breakdown -->
+{% if budget_breakdown %}
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>50/30/20 Budget Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="budgetBreakdownChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Budget Status</h5>
+            </div>
+            <div class="card-body">
+                <!-- Needs -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">Needs (50%)</span>
+                        <span class="badge bg-{{ 'success' if budget_breakdown.needs.status == 'good' else 'danger' }}">
+                            {{ budget_breakdown.needs.status.title() }}
+                        </span>
+                    </div>
+                    <div class="progress mb-1">
+                        <div class="progress-bar bg-{{ 'success' if budget_breakdown.needs.status == 'good' else 'danger' }}" 
+                             style="width: {{ budget_breakdown.needs.percentage }}%"></div>
+                    </div>
+                    <small class="text-muted">₹{{ "{:,.0f}".format(budget_breakdown.needs.amount) }} / ₹{{ "{:,.0f}".format(budget_breakdown.needs.recommended) }}</small>
+                </div>
+
+                <!-- Wants -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">Wants (30%)</span>
+                        <span class="badge bg-{{ 'success' if budget_breakdown.wants.status == 'good' else 'danger' }}">
+                            {{ budget_breakdown.wants.status.title() }}
+                        </span>
+                    </div>
+                    <div class="progress mb-1">
+                        <div class="progress-bar bg-{{ 'success' if budget_breakdown.wants.status == 'good' else 'danger' }}" 
+                             style="width: {{ budget_breakdown.wants.percentage }}%"></div>
+                    </div>
+                    <small class="text-muted">₹{{ "{:,.0f}".format(budget_breakdown.wants.amount) }} / ₹{{ "{:,.0f}".format(budget_breakdown.wants.recommended) }}</small>
+                </div>
+
+                <!-- Savings -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">Savings (20%)</span>
+                        <span class="badge bg-{{ 'success' if budget_breakdown.savings.status == 'good' else 'warning' if budget_breakdown.savings.status == 'under' else 'danger' }}">
+                            {{ budget_breakdown.savings.status.title() }}
+                        </span>
+                    </div>
+                    <div class="progress mb-1">
+                        <div class="progress-bar bg-{{ 'success' if budget_breakdown.savings.status == 'good' else 'warning' }}" 
+                             style="width: {{ budget_breakdown.savings.percentage }}%"></div>
+                    </div>
+                    <small class="text-muted">₹{{ "{:,.0f}".format(budget_breakdown.savings.amount) }} / ₹{{ "{:,.0f}".format(budget_breakdown.savings.recommended) }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Expense Categories -->
+{% if expense_categories %}
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Expense Categories
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="expenseCategoriesChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Category Breakdown</h5>
+            </div>
+            <div class="card-body">
+                {% for category, amount in expense_categories.items() %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-capitalize">{{ category.replace('_', ' ') }}</span>
+                    <span class="fw-bold">₹{{ "{:,.0f}".format(amount) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Transactions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Recent Transactions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if transaction.type == 'income' else 'danger' }}">
+                                        {{ transaction.type.title() }}
+                                    </span>
+                                </td>
+                                <td class="text-capitalize">{{ transaction.category.replace('_', ' ') }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td class="fw-bold {{ 'text-success' if transaction.type == 'income' else 'text-danger' }}">
+                                    {{ '+' if transaction.type == 'income' else '-' }}₹{{ "{:,.0f}".format(transaction.amount) }}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('delete_transaction', transaction_id=transaction._id) }}" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Are you sure you want to delete this transaction?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No transactions found for this month</p>
+                    <p class="text-muted">Add your first transaction using the form above</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Category options
+const incomeCategories = ['salary', 'freelance', 'business', 'investment_returns', 'rental_income', 'bonus', 'gift', 'other'];
+const expenseCategories = ['groceries', 'rent', 'utilities', 'transportation', 'insurance', 'healthcare', 'entertainment', 'dining', 'shopping', 'hobbies', 'travel', 'education', 'charity', 'subscriptions', 'other'];
+
+// Update categories based on type selection
+document.getElementById('type').addEventListener('change', function() {
+    const categorySelect = document.getElementById('category');
+    const categories = this.value === 'income' ? incomeCategories : expenseCategories;
+    
+    categorySelect.innerHTML = '';
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        categorySelect.appendChild(option);
+    });
+});
+
+// Initialize with expense categories
+document.getElementById('type').dispatchEvent(new Event('change'));
+
+// Set today's date
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+// Budget Breakdown Chart
+{% if budget_breakdown %}
+const budgetCtx = document.getElementById('budgetBreakdownChart').getContext('2d');
+new Chart(budgetCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Needs', 'Wants', 'Savings'],
+        datasets: [{
+            data: [
+                {{ budget_breakdown.needs.amount }},
+                {{ budget_breakdown.wants.amount }},
+                {{ budget_breakdown.savings.amount }}
+            ],
+            backgroundColor: ['#ffc107', '#dc3545', '#28a745'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+
+// Expense Categories Chart
+{% if expense_categories %}
+const expenseCtx = document.getElementById('expenseCategoriesChart').getContext('2d');
+new Chart(expenseCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for category in expense_categories.keys() %}'{{ category.replace("_", " ").title() }}'{{ "," if not loop.last }}{% endfor %}],
+        datasets: [{
+            label: 'Amount (₹)',
+            data: [{% for amount in expense_categories.values() %}{{ amount }}{{ "," if not loop.last }}{% endfor %}],
+            backgroundColor: '#17a2b8',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '₹' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
