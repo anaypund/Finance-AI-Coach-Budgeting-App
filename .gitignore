@@ -1,0 +1,25 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Logs
+*.log
+finance_ai.log
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Replit
+.replit
+replit.md
+uv.lock
+pyproject.toml

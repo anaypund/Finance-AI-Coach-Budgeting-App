@@ -1,18 +1,54 @@
-import os
 import logging
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 import json
 from datetime import datetime
+from config import Config
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Prints to console
+        logging.FileHandler('finance_ai.log')  # Saves to file
+    ]
+)
 
 class GeminiService:
     def __init__(self):
-        self.client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        self.model = "gemini-2.5-flash"
+        genai.configure(api_key=Config.GEMINI_API_KEY)
+        
+        # List available models and log them
+        # try:
+        #     models = genai.list_models()
+        #     for model in models:
+        #         logging.info(f"Available model: {model.name}")
+        # except Exception as e:
+        #     logging.error(f"Error listing models: {e}")
+        
+        try:
+            # Use Gemini 1.5 Flash 8B - a lightweight and efficient model
+            self.model = genai.GenerativeModel('models/gemini-1.5-flash-8b')
+            # Test the model with a simple prompt
+            response = self.model.generate_content("Hello")
+            logging.info("Successfully initialized Gemini model")
+        except Exception as e:
+            logging.error(f"Error initializing Gemini model: {e}")
+            raise
     
     def generate_financial_advisory(self, profile):
         """Generate personalized financial advisory based on user profile"""
         try:
+            if not profile:
+                logging.error("Profile is None or empty")
+                return "Unable to generate advisory: Profile information is missing."
+
+            # Convert MongoDB document to dictionary if it isn't already
+            if hasattr(profile, '__dict__'):
+                profile = profile.__dict__
+            elif hasattr(profile, 'to_dict'):
+                profile = profile.to_dict()
+            
             prompt = f"""
             As a professional financial advisor, provide personalized financial advice for the following user profile:
             
@@ -35,15 +71,22 @@ class GeminiService:
             5. Emergency fund recommendations
             6. Tax planning tips
             
-            Keep the advice practical, actionable, and specific to the Indian financial context.
+            Keep the advice practical, actionable, precise and specific to the Indian financial context.
+            Directly start with the advice without any introductions or disclaimers.
             """
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt, stream=True)
             
-            return response.text if response.text else "Unable to generate advisory at this time."
+            # Stream the response
+            response_stream = ""
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        response_stream += chunk.text
+                return response_stream
+            except Exception as stream_error:
+                logging.error(f"Error in streaming response: {stream_error}")
+                return "Unable to generate advisory at this time."
             
         except Exception as e:
             logging.error(f"Error generating financial advisory: {e}")
@@ -52,6 +95,18 @@ class GeminiService:
     def get_daily_tip(self, profile, financial_data):
         """Generate daily financial tip based on user profile and recent data"""
         try:
+            if not profile:
+                logging.error("Profile is None or empty in get_daily_tip")
+                return "Unable to generate tip: Profile information is missing."
+
+            if not financial_data:
+                financial_data = {}
+                
+            # Convert MongoDB document to dictionary if it isn't already
+            if hasattr(profile, '__dict__'):
+                profile = profile.__dict__
+            elif hasattr(profile, 'to_dict'):
+                profile = profile.to_dict()
             prompt = f"""
             Based on the user's financial profile and current month's data, provide a short, actionable financial tip for today:
             
@@ -64,12 +119,18 @@ class GeminiService:
             Provide a single, practical tip that the user can implement today. Keep it under 100 words.
             """
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt, stream=True)
             
-            return response.text if response.text else "Track your expenses daily to stay on budget!"
+            # Stream the response
+            response_stream = ""
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        response_stream += chunk.text
+                return response_stream
+            except Exception as stream_error:
+                logging.error(f"Error in streaming response: {stream_error}")
+                return "Track your expenses daily to stay on budget!"
             
         except Exception as e:
             logging.error(f"Error generating daily tip: {e}")
@@ -78,6 +139,17 @@ class GeminiService:
     def chat_with_coach(self, user_message, profile, recent_transactions, goals):
         """Handle chat conversation with financial coach"""
         try:
+            if not user_message:
+                logging.error("User message is empty in chat_with_coach")
+                return "I couldn't understand your question. Could you please try asking again?"
+
+            # Convert MongoDB document to dictionary if it isn't already
+            if profile:
+                if hasattr(profile, '__dict__'):
+                    profile = profile.__dict__
+                elif hasattr(profile, 'to_dict'):
+                    profile = profile.to_dict()
+            
             # Prepare context
             context = ""
             if profile:
@@ -109,12 +181,18 @@ class GeminiService:
             Keep the response conversational and under 200 words.
             """
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt, stream=True)
             
-            return response.text if response.text else "I'm here to help with your financial questions. Could you please rephrase your question?"
+            # Stream the response
+            response_stream = ""
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        response_stream += chunk.text
+                return response_stream
+            except Exception as stream_error:
+                logging.error(f"Error in streaming response: {stream_error}")
+                return "I'm here to help with your financial questions. Could you please rephrase your question?"
             
         except Exception as e:
             logging.error(f"Error in chat with coach: {e}")
@@ -123,6 +201,15 @@ class GeminiService:
     def explain_portfolio_allocation(self, profile, allocation):
         """Explain portfolio allocation strategy"""
         try:
+            if not profile or not allocation:
+                logging.error("Profile or allocation is None in explain_portfolio_allocation")
+                return "Unable to explain allocation: Missing profile or allocation information."
+
+            # Convert MongoDB document to dictionary if it isn't already
+            if hasattr(profile, '__dict__'):
+                profile = profile.__dict__
+            elif hasattr(profile, 'to_dict'):
+                profile = profile.to_dict()
             prompt = f"""
             Explain the following portfolio allocation strategy in simple terms for a user with this profile:
             
@@ -143,14 +230,21 @@ class GeminiService:
             4. When to review and rebalance
             
             Use simple language and Indian investment context.
+            Directly start with the explanation without any introductions or disclaimers.
             """
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt, stream=True)
             
-            return response.text if response.text else "This allocation balances growth and safety based on your profile."
+            # Stream the response
+            response_stream = ""
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        response_stream += chunk.text
+                return response_stream
+            except Exception as stream_error:
+                logging.error(f"Error in streaming response: {stream_error}")
+                return "This allocation balances growth and safety based on your profile."
             
         except Exception as e:
             logging.error(f"Error explaining portfolio: {e}")
@@ -159,6 +253,15 @@ class GeminiService:
     def suggest_goal_optimization(self, goal, profile):
         """Suggest ways to optimize goal achievement"""
         try:
+            if not goal or not profile:
+                logging.error("Goal or profile is None in suggest_goal_optimization")
+                return "Unable to suggest optimizations: Missing goal or profile information."
+
+            # Convert MongoDB document to dictionary if it isn't already
+            if hasattr(profile, '__dict__'):
+                profile = profile.__dict__
+            elif hasattr(profile, 'to_dict'):
+                profile = profile.to_dict()
             days_to_goal = (goal['target_date'] - datetime.now()).days
             progress_percentage = (goal['current_amount'] / goal['target_amount']) * 100
             
@@ -178,12 +281,18 @@ class GeminiService:
             Keep suggestions under 100 words total.
             """
             
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt, stream=True)
             
-            return response.text if response.text else "Consider increasing your monthly savings or exploring higher-yield investment options."
+            # Stream the response
+            response_stream = ""
+            try:
+                for chunk in response:
+                    if chunk.text:
+                        response_stream += chunk.text
+                return response_stream
+            except Exception as stream_error:
+                logging.error(f"Error in streaming response: {stream_error}")
+                return "Consider increasing your monthly savings or exploring higher-yield investment options."
             
         except Exception as e:
             logging.error(f"Error suggesting goal optimization: {e}")

@@ -134,6 +134,7 @@
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
+    {{ moment.include_moment() }}
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -3,73 +3,93 @@ import logging
 from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_moment import Moment
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, UserProfile, Transaction, Goal, ChatMessage
+from models import (
+    users_col, profiles_col, transactions_col, goals_col, chat_col,
+    create_user, check_user_password, create_profile, add_transaction,
+    add_goal, save_chat_message
+)
 from gemini_service import GeminiService
 from utils import calculate_budget_breakdown, calculate_asset_allocation, calculate_goal_savings
+from bson import ObjectId
+from config import Config
 
+
+logging.getLogger("pymongo").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "your-secret-key-here")
+app.secret_key = Config.SECRET_KEY
 
-# Configure PostgreSQL database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# Add global functions to Jinja templates
+app.jinja_env.globals.update(min=min, max=max)
 
-# Initialize extensions
-db.init_app(app)
+# Initialize Flask extensions
 login_manager = LoginManager()
+moment = Moment(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+class MongoUser:
+    def __init__(self, user_dict):
+        self.user_dict = user_dict
+
+    def get_id(self):
+        return str(self.user_dict["_id"])
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user = users_col.find_one({"_id": ObjectId(user_id)})
+    return MongoUser(user) if user else None
+
 
 # Initialize Gemini service
 gemini_service = GeminiService()
 
-# Create tables
-with app.app_context():
-    db.create_all()
-
 @app.route('/')
 @login_required
 def dashboard():
-    profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+    profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
     
     # Get current month transactions
-    current_month = datetime.now().replace(day=1).date()
-    next_month = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1).date()
+    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    next_month = (current_month + timedelta(days=32)).replace(day=1)
     
-    month_transactions = Transaction.query.filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= current_month,
-        Transaction.date < next_month
-    ).all()
+    month_transactions = list(transactions_col.find({
+        "user_id": ObjectId(current_user.get_id()),
+        "date": {"$gte": current_month, "$lt": next_month}
+    }))
     
     # Calculate budget summary
-    total_income = sum(t.amount for t in month_transactions if t.type == 'income')
-    total_expenses = sum(t.amount for t in month_transactions if t.type == 'expense')
-    
+    total_income = sum(t["amount"] for t in month_transactions if t["type"] == 'income')
+    total_expenses = sum(t["amount"] for t in month_transactions if t["type"] == 'expense')
+
     # Get active goals
-    active_goals = Goal.query.filter_by(user_id=current_user.id, status='active').all()
-    
+    active_goals = list(goals_col.find({"user_id": ObjectId(current_user.get_id()), "status": "active"}))
+
     # Calculate portfolio summary if profile exists
     portfolio_summary = None
     if profile:
-        portfolio_summary = calculate_asset_allocation(profile.__dict__)
+        portfolio_summary = calculate_asset_allocation(profile)
     
     # Get AI tip of the day
     ai_tip = None
     if profile:
         try:
-            ai_tip = gemini_service.get_daily_tip(profile.__dict__, {
+            ai_tip = gemini_service.get_daily_tip(profile, {
                 'income': total_income,
                 'expenses': total_expenses,
                 'goals': active_goals
@@ -92,45 +112,42 @@ def dashboard():
 def budgeting():
     if request.method == 'POST':
         try:
-            transaction = Transaction()
-            transaction.user_id = current_user.id
-            transaction.type = request.form['type']
-            transaction.category = request.form['category']
-            transaction.amount = float(request.form['amount'])
-            transaction.description = request.form['description']
-            transaction.date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            db.session.add(transaction)
-            db.session.commit()
+            transaction_data = {
+                "type": request.form['type'],
+                "category": request.form['category'],
+                "amount": float(request.form['amount']),
+                "description": request.form['description'],
+                "date": datetime.strptime(request.form['date'], '%Y-%m-%d')
+            }
+            add_transaction(current_user.get_id(), transaction_data)
             flash('Transaction added successfully!', 'success')
         except Exception as e:
-            db.session.rollback()
             flash(f'Error adding transaction: {str(e)}', 'error')
         return redirect(url_for('budgeting'))
     
     # Get current month transactions
-    current_month = datetime.now().replace(day=1).date()
-    next_month = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1).date()
+    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    next_month = (current_month + timedelta(days=32)).replace(day=1)
     
-    month_transactions = Transaction.query.filter(
-        Transaction.user_id == current_user.id,
-        Transaction.date >= current_month,
-        Transaction.date < next_month
-    ).order_by(Transaction.date.desc()).all()
+    month_transactions = list(transactions_col.find({
+        "user_id": ObjectId(current_user.get_id()),
+        "date": {"$gte": current_month, "$lt": next_month}
+    }).sort("date", -1))
     
     # Calculate budget breakdown
     transactions_data = [{
-        'amount': t.amount,
-        'type': t.type,
-        'category': t.category
+        'amount': t['amount'],
+        'type': t['type'],
+        'category': t['category']
     } for t in month_transactions]
     budget_breakdown = calculate_budget_breakdown(transactions_data)
     
     # Get category-wise expenses
     expense_categories = {}
     for transaction in month_transactions:
-        if transaction.type == 'expense':
-            category = transaction.category
-            expense_categories[category] = expense_categories.get(category, 0) + transaction.amount
+        if transaction['type'] == 'expense':
+            category = transaction['category']
+            expense_categories[category] = expense_categories.get(category, 0) + transaction['amount']
     
     return render_template('budgeting.html', 
                          transactions=month_transactions,
@@ -142,43 +159,38 @@ def budgeting():
 def profile():
     if request.method == 'POST':
         try:
-            existing_profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+            existing_profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
+            
+            profile_data = {
+                "job_title": request.form['job_title'],
+                "monthly_salary": float(request.form['monthly_salary']),
+                "age": int(request.form['age']),
+                "dependents": int(request.form['dependents']),
+                "location": request.form['location'],
+                "risk_tolerance": request.form['risk_tolerance'],
+                "financial_goals": request.form['financial_goals'],
+                "monthly_expenses": float(request.form['monthly_expenses']),
+                "existing_investments": float(request.form['existing_investments']),
+                "debt_amount": float(request.form['debt_amount']),
+                "emergency_fund": float(request.form.get('emergency_fund', 0)),
+                "updated_at": datetime.utcnow()
+            }
             
             if existing_profile:
-                existing_profile.job_title = request.form['job_title']
-                existing_profile.monthly_salary = float(request.form['monthly_salary'])
-                existing_profile.age = int(request.form['age'])
-                existing_profile.dependents = int(request.form['dependents'])
-                existing_profile.location = request.form['location']
-                existing_profile.risk_tolerance = request.form['risk_tolerance']
-                existing_profile.financial_goals = request.form['financial_goals']
-                existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
-                existing_profile.existing_investments = float(request.form['existing_investments'])
-                existing_profile.debt_amount = float(request.form['debt_amount'])
-                existing_profile.emergency_fund = float(request.form.get('emergency_fund', 0))
-                existing_profile.updated_at = datetime.utcnow()
+                profiles_col.update_one(
+                    {"user_id": ObjectId(current_user.get_id())},
+                    {"$set": profile_data}
+                )
             else:
-                existing_profile = UserProfile()
-                existing_profile.user_id = current_user.id
-                existing_profile.job_title = request.form['job_title']
-                existing_profile.monthly_salary = float(request.form['monthly_salary'])
-                existing_profile.age = int(request.form['age'])
-                existing_profile.dependents = int(request.form['dependents'])
-                existing_profile.location = request.form['location']
-                existing_profile.risk_tolerance = request.form['risk_tolerance']
-                existing_profile.financial_goals = request.form['financial_goals']
-                existing_profile.monthly_expenses = float(request.form['monthly_expenses'])
-                existing_profile.existing_investments = float(request.form['existing_investments'])
-                existing_profile.debt_amount = float(request.form['debt_amount'])
-                existing_profile.emergency_fund = float(request.form.get('emergency_fund', 0))
-                db.session.add(existing_profile)
+                create_profile(current_user.get_id(), profile_data)
             
-            db.session.commit()
+            # Get the updated profile data
+            updated_profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
             
             # Generate AI advisory with timeout
             advisory = None
             try:
-                advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
+                advisory = gemini_service.generate_financial_advisory(updated_profile)
             except Exception as ai_error:
                 logging.warning(f"AI advisory failed: {ai_error}")
                 advisory = "AI advisory temporarily unavailable. Your profile has been saved successfully."
@@ -188,17 +200,16 @@ def profile():
                                  profile=existing_profile, 
                                  advisory=advisory)
         except Exception as e:
-            db.session.rollback()
             flash(f'Error updating profile: {str(e)}', 'error')
             return redirect(url_for('profile'))
     
     # Get existing profile
-    existing_profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+    existing_profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
     advisory = None
     
     if existing_profile:
         try:
-            advisory = gemini_service.generate_financial_advisory(existing_profile.__dict__)
+            advisory = gemini_service.generate_financial_advisory(existing_profile)
         except Exception as ai_error:
             logging.warning(f"AI advisory failed: {ai_error}")
             advisory = "Complete your profile to get personalized AI financial advisory."
@@ -210,17 +221,17 @@ def profile():
 @app.route('/portfolio')
 @login_required
 def portfolio():
-    profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+    profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
     
     if not profile:
         flash('Please complete your profile first to see portfolio recommendations.', 'warning')
         return redirect(url_for('profile'))
     
     # Calculate asset allocation
-    allocation = calculate_asset_allocation(profile.__dict__)
+    allocation = calculate_asset_allocation(profile)
     
     # Get AI explanation
-    explanation = gemini_service.explain_portfolio_allocation(profile.__dict__, allocation)
+    explanation = gemini_service.explain_portfolio_allocation(profile, allocation)
     
     # Real-world investment examples
     investment_examples = {
@@ -254,31 +265,26 @@ def coach():
         user_message = request.form['message']
         
         # Get user context
-        profile = UserProfile.query.filter_by(user_id=current_user.id).first()
-        recent_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.desc()).limit(10).all()
-        user_goals = Goal.query.filter_by(user_id=current_user.id).all()
-        
-        # Convert to dict format for AI service
-        profile_dict = profile.__dict__ if profile else {}
-        transactions_data = [t.__dict__ for t in recent_transactions]
-        goals_data = [g.__dict__ for g in user_goals]
+        profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
+        recent_transactions = list(transactions_col.find({
+            "user_id": ObjectId(current_user.get_id())
+        }).sort("date", -1).limit(10))
+        user_goals = list(goals_col.find({
+            "user_id": ObjectId(current_user.get_id())
+        }))
         
         # Get AI response
-        ai_response = gemini_service.chat_with_coach(user_message, profile_dict, transactions_data, goals_data)
+        ai_response = gemini_service.chat_with_coach(user_message, profile, recent_transactions, user_goals)
         
         # Save chat history
-        chat_entry = ChatMessage()
-        chat_entry.user_id = current_user.id
-        chat_entry.user_message = user_message
-        chat_entry.ai_response = ai_response
-        db.session.add(chat_entry)
-        db.session.commit()
+        save_chat_message(current_user.get_id(), user_message, ai_response)
         
         flash('Message sent!', 'success')
     
     # Get chat history
-    chat_messages = ChatMessage.query.filter_by(user_id=current_user.id).order_by(ChatMessage.timestamp.desc()).limit(20).all()
-    chat_messages.reverse()  # Show oldest first
+    chat_messages = list(chat_col.find({
+        "user_id": ObjectId(current_user.get_id())
+    }).sort("timestamp", 1).limit(20))
     
     return render_template('coach.html', chat_messages=chat_messages)
 
@@ -290,52 +296,60 @@ def goals_page():
             goal_data = {
                 'target_amount': float(request.form['target_amount']),
                 'current_amount': float(request.form.get('current_amount', 0)),
-                'target_date': datetime.strptime(request.form['target_date'], '%Y-%m-%d').date()
+                'target_date': datetime.strptime(request.form['target_date'], '%Y-%m-%d')
             }
             
             # Calculate monthly savings needed
             monthly_savings = calculate_goal_savings(goal_data)
             
-            goal = Goal()
-            goal.user_id = current_user.id
-            goal.title = request.form['title']
-            goal.target_amount = goal_data['target_amount']
-            goal.target_date = goal_data['target_date']
-            goal.current_amount = goal_data['current_amount']
-            goal.category = request.form['category']
-            goal.status = 'active'
-            goal.monthly_savings_needed = monthly_savings
+            goal_data.update({
+                "title": request.form['title'],
+                "category": request.form['category'],
+                "status": 'active',
+                "monthly_savings_needed": monthly_savings,
+                "created_at": datetime.utcnow()
+            })
             
-            db.session.add(goal)
-            db.session.commit()
+            add_goal(current_user.get_id(), goal_data)
             flash('Goal created successfully!', 'success')
         except Exception as e:
-            db.session.rollback()
             flash(f'Error creating goal: {str(e)}', 'error')
         return redirect(url_for('goals_page'))
     
     # Get user goals
-    user_goals = Goal.query.filter_by(user_id=current_user.id).order_by(Goal.created_at.desc()).all()
+    user_goals = list(goals_col.find({
+        "user_id": ObjectId(current_user.get_id())
+    }).sort("created_at", -1))
     
     # Get AI suggestions for each goal
-    profile = UserProfile.query.filter_by(user_id=current_user.id).first()
+    profile = profiles_col.find_one({"user_id": ObjectId(current_user.get_id())})
     if profile:
         for goal in user_goals:
-            goal.ai_suggestion = gemini_service.suggest_goal_optimization(goal.__dict__, profile.__dict__)
+            goal['ai_suggestion'] = gemini_service.suggest_goal_optimization(goal, profile)
     
-    return render_template('goals.html', goals=user_goals)
+    current_time = datetime.utcnow()
+    return render_template('goals.html', goals=user_goals, current_time=current_time)
 
 @app.route('/update_goal', methods=['POST'])
 @login_required
 def update_goal():
-    goal_id = int(request.form['goal_id'])
+    goal_id = request.form['goal_id']
     current_amount = float(request.form['current_amount'])
     
-    goal = Goal.query.filter_by(id=goal_id, user_id=current_user.id).first()
-    if goal:
-        goal.current_amount = current_amount
-        goal.updated_at = datetime.utcnow()
-        db.session.commit()
+    result = goals_col.update_one(
+        {
+            "_id": ObjectId(goal_id),
+            "user_id": ObjectId(current_user.get_id())
+        },
+        {
+            "$set": {
+                "current_amount": current_amount,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    if result.modified_count:
         flash('Goal updated successfully!', 'success')
     
     return redirect(url_for('goals_page'))
@@ -345,12 +359,12 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
-        user = User.query.filter_by(email=email).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            session['username'] = user.username
+
+        user_id = check_user_password(email, password)
+        if user_id:
+            user = users_col.find_one({"_id": ObjectId(user_id)})
+            login_user(MongoUser(user))
+            session['username'] = user["username"]
             flash('Logged in successfully!', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -358,34 +372,27 @@ def login():
     
     return render_template('login.html')
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        
-        # Check if user exists
-        if User.query.filter_by(email=email).first():
+
+        if users_col.find_one({"email": email}):
             flash('Email already registered!', 'error')
             return render_template('register.html')
-        
-        # Create new user
-        user = User()
-        user.username = username
-        user.email = email
-        user.set_password(password)
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        login_user(user)
+
+        user_id = create_user(username, email, password)
+        user = users_col.find_one({"_id": ObjectId(user_id)})
+        login_user(MongoUser(user))
         session['username'] = username
-        
         flash('Registration successful!', 'success')
         return redirect(url_for('dashboard'))
     
     return render_template('register.html')
+
 
 @app.route('/logout')
 @login_required
@@ -395,14 +402,14 @@ def logout():
     flash('Logged out successfully!', 'success')
     return redirect(url_for('login'))
 
-@app.route('/delete_transaction/<int:transaction_id>')
+@app.route('/delete_transaction/<transaction_id>')
 @login_required
 def delete_transaction(transaction_id):
-    transaction = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first()
-    if transaction:
-        db.session.delete(transaction)
-        db.session.commit()
-        flash('Transaction deleted successfully!', 'success')
+    transactions_col.delete_one({
+        "_id": ObjectId(transaction_id),
+        "user_id": ObjectId(current_user.get_id())
+    })
+    flash('Transaction deleted successfully!', 'success')
     return redirect(url_for('budgeting'))
 
 if __name__ == '__main__':

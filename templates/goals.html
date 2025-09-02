@@ -81,7 +81,7 @@
             </div>
             <div class="card-body">
                 <!-- Progress Bar -->
-                {% set progress_percentage = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0 %}
+                {% set progress_percentage = (goal.current_amount|float / goal.target_amount|float * 100)|round(1) if goal.target_amount|float > 0 else 0 %}
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <small class="text-muted">Progress</small>
@@ -106,7 +106,7 @@
                 </div>
 
                 <!-- Target Date -->
-                {% set days_remaining = (goal.target_date - moment.now()).days %}
+                {% set days_remaining = (goal.target_date - current_time).days %}
                 <div class="mb-3">
                     <small class="text-muted">Target Date</small>
                     <p class="mb-0">
@@ -230,9 +230,16 @@
             </div>
             <div class="card-body">
                 {% set total_goals = goals|length %}
-                {% set completed_goals = goals|selectattr('current_amount', 'ge', goals|map(attribute='target_amount')|list)|list|length %}
-                {% set total_target = goals|sum(attribute='target_amount') %}
-                {% set total_saved = goals|sum(attribute='current_amount') %}
+                {% set completed_goals = 0 %}
+                {% set total_target = namespace(value=0) %}
+                {% set total_saved = namespace(value=0) %}
+                {% for goal in goals %}
+                    {% if goal.current_amount|float >= goal.target_amount|float %}
+                        {% set completed_goals = completed_goals + 1 %}
+                    {% endif %}
+                    {% set total_target.value = total_target.value + goal.target_amount|float %}
+                    {% set total_saved.value = total_saved.value + goal.current_amount|float %}
+                {% endfor %}
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center">
@@ -260,21 +267,21 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>Total Target</span>
-                        <span class="fw-bold">₹{{ "{:,.0f}".format(total_target) }}</span>
+                        <span class="fw-bold">₹{{ "{:,.0f}".format(total_target.value) }}</span>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>Total Saved</span>
-                        <span class="fw-bold text-success">₹{{ "{:,.0f}".format(total_saved) }}</span>
+                        <span class="fw-bold text-success">₹{{ "{:,.0f}".format(total_saved.value) }}</span>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>Overall Progress</span>
-                        <span class="fw-bold text-primary">{{ "{:.1f}".format((total_saved / total_target * 100) if total_target > 0 else 0) }}%</span>
+                        <span class="fw-bold text-primary">{{ "{:.1f}".format((total_saved.value / total_target.value * 100) if total_target.value|float > 0 else 0) }}%</span>
                     </div>
                 </div>
             </div>
