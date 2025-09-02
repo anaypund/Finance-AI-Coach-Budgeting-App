@@ -32,8 +32,8 @@ It allows you to send prompts to a Gemini model, store conversations in MongoDB,
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/gemini-mongodb-chatbot.git
-cd gemini-mongodb-chatbot
+git clone https://github.com/anaypund/Finance-AI-Coach-Budgeting-App.git
+cd Finance-AI-Coach-Budgeting-App
 ```
 
 ### 2. Create a Virtual Environment
@@ -56,8 +56,7 @@ Create a `.env` file in the project root and add:
 
 ```env
 GEMINI_API_KEY=your_api_key_here
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB=chatbot
+MONGODB_URI=mongodb://localhost:27017
 ```
 
 ---
