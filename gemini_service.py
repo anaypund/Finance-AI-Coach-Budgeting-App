@@ -3,6 +3,8 @@ import google.generativeai as genai
 import json
 from datetime import datetime
 from config import Config
+import time
+
 
 # Configure logging
 logging.basicConfig(
@@ -27,14 +29,26 @@ class GeminiService:
         #     logging.error(f"Error listing models: {e}")
         
         try:
-            # Use Gemini 1.5 Flash 8B - a lightweight and efficient model
-            self.model = genai.GenerativeModel('models/gemini-1.5-flash-8b')
-            # Test the model with a simple prompt
-            response = self.model.generate_content("Hello")
-            logging.info("Successfully initialized Gemini model")
+            # ONLY create the model — NO API CALL HERE
+            self.model = genai.GenerativeModel('models/gemini-2.5-flash-lite')
+            logging.info("Gemini model object created (no API call made).")
         except Exception as e:
             logging.error(f"Error initializing Gemini model: {e}")
             raise
+
+    def _safe_generate(self, prompt, stream=True, retries=3):
+        for attempt in range(retries):
+            try:
+                return self.model.generate_content(prompt, stream=stream)
+            except Exception as e:
+                if "429" in str(e):
+                    wait = 10 * (attempt + 1)
+                    logging.warning(f"Rate limit hit. Waiting {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise e
+        raise Exception("Gemini failed after retries")
+
     
     def generate_financial_advisory(self, profile):
         """Generate personalized financial advisory based on user profile"""
